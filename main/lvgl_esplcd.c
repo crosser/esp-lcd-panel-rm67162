@@ -11,6 +11,7 @@
 #include <esp_heap_caps.h>
 #include <esp_err.h>
 #include <esp_log.h>
+#include <esp_sleep.h>
 #include <esp_timer.h>
 #include "esp_lcd_panel_rm67162.h"
 #include "sdkconfig.h"
@@ -40,6 +41,14 @@
 #define LV_TICK_PERIOD_MS 1
 
 extern void example_lvgl_demo_ui(lv_display_t *disp);
+
+static volatile bool is_running = true;
+
+static void poweroff(void *arg)
+{
+	ESP_LOGI(TAG, "Power off timer called");
+	is_running = false;
+}
 
 static bool IRAM_ATTR color_trans_done(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx)
 {
@@ -174,18 +183,34 @@ static void gui_task(void *pvParameter)
 
 	ESP_LOGI(TAG, "Display LVGL Scroll Text");
 	example_lvgl_demo_ui(disp);
-	while (1) {
+	while (is_running) {
 		vTaskDelay(pdMS_TO_TICKS(10));
 		if (pdTRUE == xSemaphoreTake(xGuiSemaphore, portMAX_DELAY)) {
 			lv_task_handler();
 			xSemaphoreGive(xGuiSemaphore);
 		}
+		// ESP_LOGI(TAG, "is_running = %d", is_running);
 	}
+	ESP_LOGI(TAG, "Shutting down");
+	ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, false));
+	ESP_ERROR_CHECK(gpio_set_level(CONFIG_HWE_DISPLAY_PWR,
+				!CONFIG_HWE_DISPLAY_PWR_ON_LEVEL));
+	esp_deep_sleep_start();
 }
 
 void app_main(void)
 {
+	static esp_timer_handle_t powerOffTimer;
+
 	ESP_LOGI(TAG, "Launching gui task");
 	/* Pinned to core 1. Core 0 will run bluetooth/wifi jobs. */
 	xTaskCreatePinnedToCore(gui_task, "gui", 4096*2, NULL, 0, NULL, 1);
+	ESP_ERROR_CHECK(esp_timer_create(&(esp_timer_create_args_t){
+				.callback = poweroff,
+				.arg = NULL,
+				.name = "PowerOff",
+			},
+			&powerOffTimer));
+	ESP_ERROR_CHECK(esp_timer_start_once(powerOffTimer, 15000000));
+	ESP_LOGI(TAG, "Initialization complete");
 }
