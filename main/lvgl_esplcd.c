@@ -1,3 +1,15 @@
+/*
+ * SPDX-FileCopyrightText: 2024-2026 Eugene Crosser
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * This is a demo application that shows how to use OLED display connected
+ * to ESP32 SoC via rm67162 SPI adapter, using ESP-IDF LCD framework.
+ * It makes use of the driver `esp_lcd_panel_rm67162`.
+ */
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>

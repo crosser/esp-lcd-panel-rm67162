@@ -1,7 +1,13 @@
 /*
  * SPDX-FileCopyrightText: 2021-2023 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Eugene Crosser
  *
  * SPDX-License-Identifier: Apache-2.0
+ */
+
+/*
+ * This is an ESP-IDF component that adds support for rm67162 OLED chip
+ * to the esp_lcd driver framework.
  */
 
 #include <stdlib.h>

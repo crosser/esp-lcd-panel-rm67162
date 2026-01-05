@@ -1,5 +1,6 @@
 /*
  * SPDX-FileCopyrightText: 2021-2022 Espressif Systems (Shanghai) CO LTD
+ * SPDX-FileCopyrightText: 2024-2026 Eugene Crosser
  *
  * SPDX-License-Identifier: CC0-1.0
  */
