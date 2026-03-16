@@ -1,0 +1,6 @@
+version: "0.1.0"
+description: ESP LCD RM67162 OLED driver
+url: https://www.average.org/cgit/esp-lcd-panel-rm67162.git
+license: "Apache 2.0"
+dependencies:
+  idf: ">=5.0"
