@@ -48,7 +48,7 @@
 #endif
 
 #define SEND_BUF_SIZE ((CONFIG_HWE_DISPLAY_WIDTH * CONFIG_HWE_DISPLAY_HEIGHT \
-                * LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565)) / 10)
+	* LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565_SWAPPED)) / 10)
 
 #define LV_TICK_PERIOD_MS 1
 
@@ -174,6 +174,7 @@ static void gui_task(void *pvParameter)
 	       	disp));
 	lv_display_set_user_data(disp, panel_handle);
 	lv_display_set_flush_cb(disp, disp_flush);
+	lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565_SWAPPED);
 	static lv_color_t *buf[2];
 	for (int i = 0; i < 2; i++) {
 		buf[i] = heap_caps_malloc(SEND_BUF_SIZE, MALLOC_CAP_DMA);

@@ -1,5 +1,5 @@
 dependencies:
   idf: ">=5.0"
-  lvgl/lvgl: ">=9.2.0"
+  lvgl/lvgl: ">=9.3.0"
   esp-lcd-panel-rm67162:
     path: "../../../"
