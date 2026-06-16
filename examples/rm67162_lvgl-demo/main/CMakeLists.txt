@@ -1,5 +1,5 @@
 set(srcs
-	"lvgl_esplcd.c"
+	"main.c"
 	"lvgl_demo_ui.c"
 )
 
