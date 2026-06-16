@@ -13,7 +13,6 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
 #include <driver/gpio.h>
 #include <driver/spi_master.h>
 #include <esp_lcd_types.h>
@@ -86,11 +85,8 @@ static void disp_flush(lv_display_t *disp_drv, const lv_area_t *area,
 			(uint16_t *) px_map));
 }
 
-SemaphoreHandle_t xGuiSemaphore;
-
-static void gui_task(void *pvParameter)
+void app_main(void)
 {
-	xGuiSemaphore = xSemaphoreCreateMutex();
 	ESP_LOGI(TAG, "Turn on display power");
 	ESP_ERROR_CHECK(gpio_set_direction(CONFIG_HWE_DISPLAY_PWR,
 				GPIO_MODE_OUTPUT));
@@ -204,10 +200,7 @@ static void gui_task(void *pvParameter)
 	example_lvgl_demo_ui(disp);
 	while (stop_request < 1) {
 		vTaskDelay(pdMS_TO_TICKS(10));
-		if (pdTRUE == xSemaphoreTake(xGuiSemaphore, portMAX_DELAY)) {
-			lv_task_handler();
-			xSemaphoreGive(xGuiSemaphore);
-		}
+		lv_task_handler();
 		int lvl = gpio_get_level(CONFIG_HWE_BUTTON_1);
 		/*
 		ESP_LOGI(TAG, "stop request = %d, level = %d",
@@ -228,12 +221,4 @@ static void gui_task(void *pvParameter)
 	vTaskDelay(pdMS_TO_TICKS(50));
 	gpio_reset_pin(CONFIG_HWE_DISPLAY_PWR);
 	esp_deep_sleep_start();
-}
-
-void app_main(void)
-{
-	ESP_LOGI(TAG, "Launching gui task");
-	/* Pinned to core 1. Core 0 will run bluetooth/wifi jobs. */
-	xTaskCreatePinnedToCore(gui_task, "gui", 4096*2, NULL, 0, NULL, 1);
-	ESP_LOGI(TAG, "Initialization complete");
 }
