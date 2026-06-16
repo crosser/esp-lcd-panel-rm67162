@@ -87,12 +87,14 @@ static void disp_flush(lv_display_t *disp_drv, const lv_area_t *area,
 
 void app_main(void)
 {
-	ESP_LOGI(TAG, "Turn on display power");
-	ESP_ERROR_CHECK(gpio_set_direction(CONFIG_HWE_DISPLAY_PWR,
-				GPIO_MODE_OUTPUT));
-	ESP_ERROR_CHECK(gpio_set_level(CONFIG_HWE_DISPLAY_PWR,
-				CONFIG_HWE_DISPLAY_PWR_ON_LEVEL));
-	vTaskDelay(pdMS_TO_TICKS(500));
+	if (CONFIG_HWE_DISPLAY_PWR >= 0) {
+		ESP_LOGI(TAG, "Turn on display power");
+		ESP_ERROR_CHECK(gpio_set_direction(CONFIG_HWE_DISPLAY_PWR,
+					GPIO_MODE_OUTPUT));
+		ESP_ERROR_CHECK(gpio_set_level(CONFIG_HWE_DISPLAY_PWR,
+					CONFIG_HWE_DISPLAY_PWR_ON_LEVEL));
+		vTaskDelay(pdMS_TO_TICKS(500));
+	}
 
 	ESP_LOGI(TAG, "Initialize SPI bus");
 	ESP_ERROR_CHECK(spi_bus_initialize(SPIx_HOST,
@@ -208,17 +210,23 @@ void app_main(void)
 		*/
 		if (!lvl) stop_request++;
 	}
+	lv_display_delete(disp);
 	ESP_LOGI(TAG, "Shutting down");
-	// ESP_ERROR_CHECK(esp_lcd_panel_disp_sleep(panel_handle, true));
-	esp_lcd_panel_disp_on_off(panel_handle, false);
-	ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
+	ESP_ERROR_CHECK(esp_lcd_panel_disp_sleep(panel_handle, true));
+	// vTaskDelay(pdMS_TO_TICKS(50));
+	// ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, false));
+	vTaskDelay(pdMS_TO_TICKS(50));
+	ESP_LOGI(TAG, "Panel delete");
 	ESP_ERROR_CHECK(esp_lcd_panel_del(panel_handle));
 	panel_handle = NULL;
+	if (CONFIG_HWE_DISPLAY_PWR >= 0) {
+		vTaskDelay(pdMS_TO_TICKS(5000));
+		ESP_LOGI(TAG, "Turn off display power");
+		ESP_ERROR_CHECK(gpio_set_level(CONFIG_HWE_DISPLAY_PWR,
+					!CONFIG_HWE_DISPLAY_PWR_ON_LEVEL));
+		vTaskDelay(pdMS_TO_TICKS(50));
+		gpio_reset_pin(CONFIG_HWE_DISPLAY_PWR);
+	}
 	vTaskDelay(pdMS_TO_TICKS(50));
-	ESP_LOGI(TAG, "Turn off display power");
-	ESP_ERROR_CHECK(gpio_set_level(CONFIG_HWE_DISPLAY_PWR,
-				!CONFIG_HWE_DISPLAY_PWR_ON_LEVEL));
-	vTaskDelay(pdMS_TO_TICKS(50));
-	gpio_reset_pin(CONFIG_HWE_DISPLAY_PWR);
 	esp_deep_sleep_start();
 }
