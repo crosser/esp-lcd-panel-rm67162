@@ -219,7 +219,7 @@ static void gui_task(void *pvParameter)
 		if (!lvl) stop_request++;
 	}
 	ESP_LOGI(TAG, "Shutting down");
-	ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, false));
+	ESP_ERROR_CHECK(esp_lcd_panel_disp_sleep(panel_handle, true));
 	ESP_ERROR_CHECK(gpio_set_level(CONFIG_HWE_DISPLAY_PWR,
 				!CONFIG_HWE_DISPLAY_PWR_ON_LEVEL));
 	esp_deep_sleep_start();
