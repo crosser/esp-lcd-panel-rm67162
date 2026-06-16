@@ -205,14 +205,17 @@ static esp_err_t panel_rm67162_reset(esp_lcd_panel_t *panel)
 
 	// perform hardware reset
 	if (rm67162->reset_gpio_num >= 0) {
-		ESP_LOGD(TAG, "Set pin %d to %d", rm67162->reset_gpio_num,
-				rm67162->reset_level);
-		gpio_set_level(rm67162->reset_gpio_num, rm67162->reset_level);
-		vTaskDelay(pdMS_TO_TICKS(300));
-		ESP_LOGD(TAG, "Set pin %d to %d", rm67162->reset_gpio_num,
-				!rm67162->reset_level);
-		gpio_set_level(rm67162->reset_gpio_num, !rm67162->reset_level);
-		vTaskDelay(pdMS_TO_TICKS(200));
+		int delays[3] = {200, 300, 200};
+		int lvl = rm67162->reset_level;
+		for (int i = 0; i < 3; i++) {
+			ESP_LOGD(TAG, "Set pin %d to %d",
+				rm67162->reset_gpio_num, lvl);
+			ESP_RETURN_ON_ERROR(gpio_set_level(
+					rm67162->reset_gpio_num, lvl),
+				TAG, "gpio_set_level active error");
+			vTaskDelay(pdMS_TO_TICKS(delays[i]));
+			lvl = !lvl;
+		}
 	} else {		// perform software reset
 		ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
 			(esp_lcd_panel_io_handle_t)rm67162->io,
