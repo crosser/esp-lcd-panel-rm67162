@@ -91,7 +91,7 @@ SemaphoreHandle_t xGuiSemaphore;
 static void gui_task(void *pvParameter)
 {
 	xGuiSemaphore = xSemaphoreCreateMutex();
-	ESP_LOGI(TAG, "Power up AMOLED");
+	ESP_LOGI(TAG, "Turn on display power");
 	ESP_ERROR_CHECK(gpio_set_direction(CONFIG_HWE_DISPLAY_PWR,
 				GPIO_MODE_OUTPUT));
 	ESP_ERROR_CHECK(gpio_set_level(CONFIG_HWE_DISPLAY_PWR,
@@ -158,9 +158,6 @@ static void gui_task(void *pvParameter)
 	// Rotate 90 degrees clockwise:
 	ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, true));
 	ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, true, false));
-	ESP_LOGI(TAG, "Turn on backlight");
-	ESP_ERROR_CHECK(gpio_set_level(CONFIG_HWE_DISPLAY_PWR,
-				CONFIG_HWE_DISPLAY_PWR_ON_LEVEL));
 	// panel_handle is ready, now deal with lvgl
 	lv_init();
 	// H and W exchanged because it lies on its side after rotation
@@ -219,9 +216,17 @@ static void gui_task(void *pvParameter)
 		if (!lvl) stop_request++;
 	}
 	ESP_LOGI(TAG, "Shutting down");
-	ESP_ERROR_CHECK(esp_lcd_panel_disp_sleep(panel_handle, true));
+	// ESP_ERROR_CHECK(esp_lcd_panel_disp_sleep(panel_handle, true));
+	esp_lcd_panel_disp_on_off(panel_handle, false);
+	ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
+	ESP_ERROR_CHECK(esp_lcd_panel_del(panel_handle));
+	panel_handle = NULL;
+	vTaskDelay(pdMS_TO_TICKS(50));
+	ESP_LOGI(TAG, "Turn off display power");
 	ESP_ERROR_CHECK(gpio_set_level(CONFIG_HWE_DISPLAY_PWR,
 				!CONFIG_HWE_DISPLAY_PWR_ON_LEVEL));
+	vTaskDelay(pdMS_TO_TICKS(50));
+	gpio_reset_pin(CONFIG_HWE_DISPLAY_PWR);
 	esp_deep_sleep_start();
 }
 
