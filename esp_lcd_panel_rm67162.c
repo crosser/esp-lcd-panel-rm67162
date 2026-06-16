@@ -359,7 +359,8 @@ static esp_err_t panel_rm67162_sleep(esp_lcd_panel_t *panel, bool sleep)
 	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
 		(esp_lcd_panel_io_handle_t)rm67162->io,
 		sleep ? LCD_CMD_SLPIN : LCD_CMD_SLPOUT, NULL, 0),
-			TAG, "io tx param LCD_CMD_SLPx failed");
+			TAG, "io tx param LCD_CMD_SLP%s failed",
+			sleep ? "IN" : "OUT");
 	vTaskDelay(pdMS_TO_TICKS(100));
 
 	return ESP_OK;
