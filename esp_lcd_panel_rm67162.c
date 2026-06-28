@@ -205,9 +205,9 @@ static esp_err_t panel_rm67162_reset(esp_lcd_panel_t *panel)
 
 	// perform hardware reset
 	if (rm67162->reset_gpio_num >= 0) {
-		int delays[3] = {200, 300, 200};
+		int delays[2] = {300, 200};
 		int lvl = rm67162->reset_level;
-		for (int i = 0; i < 3; i++) {
+		for (int i = 0; i < 2; i++) {
 			ESP_LOGD(TAG, "Set pin %d to %d",
 				rm67162->reset_gpio_num, lvl);
 			ESP_RETURN_ON_ERROR(gpio_set_level(
