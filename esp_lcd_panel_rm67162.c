@@ -143,8 +143,6 @@ static esp_err_t panel_rm67162_init(esp_lcd_panel_t *panel)
 	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
 		io, LCD_CMD_WRDISBV, (uint8_t[]) {0,}, 1),
 			TAG, "io tx param LCD_CMD_WRDISBV 0 failed");
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans( io, LCD_CMD_DISPON, NULL, 0),
-			TAG, "io tx param LCD_CMD_DISPON failed");
 	vTaskDelay(pdMS_TO_TICKS(120));
 	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
 		io, LCD_CMD_WRDISBV, (uint8_t[]) {0xD0,}, 1),
