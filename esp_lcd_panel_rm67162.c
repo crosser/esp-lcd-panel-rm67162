@@ -43,22 +43,6 @@
 
 static const char *TAG = "lcd_panel.rm67162";
 
-static esp_err_t panel_rm67162_del(esp_lcd_panel_t * panel);
-static esp_err_t panel_rm67162_reset(esp_lcd_panel_t * panel);
-static esp_err_t panel_rm67162_init(esp_lcd_panel_t * panel);
-static esp_err_t panel_rm67162_draw_bitmap(esp_lcd_panel_t * panel, int x_start,
-					   int y_start, int x_end, int y_end,
-					   const void *color_data);
-static esp_err_t panel_rm67162_invert_color(esp_lcd_panel_t * panel,
-					    bool invert_color_data);
-static esp_err_t panel_rm67162_mirror(esp_lcd_panel_t * panel, bool mirror_x,
-				      bool mirror_y);
-static esp_err_t panel_rm67162_swap_xy(esp_lcd_panel_t * panel, bool swap_axes);
-static esp_err_t panel_rm67162_set_gap(esp_lcd_panel_t * panel, int x_gap,
-				       int y_gap);
-static esp_err_t panel_rm67162_disp_on_off(esp_lcd_panel_t * panel, bool off);
-static esp_err_t panel_rm67162_sleep(esp_lcd_panel_t * panel, bool sleep);
-
 typedef struct {
 	esp_lcd_panel_t base;
 	esp_lcd_panel_io_handle_t io;
@@ -70,99 +54,6 @@ typedef struct {
 	uint8_t madctl_val;	// save current value of LCD_CMD_MADCTL register
 	uint8_t colmod_val;	// save current value of LCD_CMD_COLMOD register
 } rm67162_panel_t;
-
-esp_err_t
-esp_lcd_new_panel_rm67162(const esp_lcd_panel_io_handle_t io,
-			  const esp_lcd_panel_dev_config_t *panel_dev_config,
-			  esp_lcd_panel_handle_t *ret_panel)
-{
-#if CONFIG_LCD_ENABLE_DEBUG_LOG
-	esp_log_level_set(TAG, ESP_LOG_DEBUG);
-#endif
-	esp_err_t ret = ESP_OK;
-	rm67162_panel_t *rm67162 = NULL;
-	ESP_GOTO_ON_FALSE(io && panel_dev_config && ret_panel,
-		ESP_ERR_INVALID_ARG, err, TAG, "invalid argument");
-	rm67162 = calloc(1, sizeof(rm67162_panel_t));
-	ESP_GOTO_ON_FALSE(rm67162,
-		ESP_ERR_NO_MEM, err, TAG, "no mem for rm67162 panel");
-
-	if (panel_dev_config->reset_gpio_num >= 0) {
-		ESP_GOTO_ON_ERROR(gpio_set_direction(
-			panel_dev_config->reset_gpio_num, GPIO_MODE_OUTPUT),
-			err, TAG, "configure GPIO for RST line failed");
-	}
-
-	switch (panel_dev_config->rgb_ele_order) {
-	/*
-	 * Spec sheet says that LCD_CMD_MV_BIT is reversed for rm67162,
-	 * but in reality it is not. I.e. in portrait orientation scanning
-	 * goes left to right, top to bottom.
-	 */
-	case LCD_RGB_ELEMENT_ORDER_RGB:
-		rm67162->madctl_val = 0;
-		break;
-	case LCD_RGB_ELEMENT_ORDER_BGR:
-		rm67162->madctl_val = LCD_CMD_BGR_BIT;
-		break;
-	default:
-		ESP_GOTO_ON_FALSE(false,
-			ESP_ERR_NOT_SUPPORTED, err, TAG,
-			"unsupported RGB element order");
-		break;
-	}
-
-	uint8_t fb_bits_per_pixel = 0;
-	switch (panel_dev_config->bits_per_pixel) {
-	case 16:		// RGB565
-		rm67162->colmod_val = 0x55;
-		fb_bits_per_pixel = 16;
-		break;
-	case 18:		// RGB666
-		rm67162->colmod_val = 0x66;
-		// each color component (R/G/B) should occupy
-		// the 6 high bits of a byte, which means 3 full bytes
-		// are required for a pixel
-		fb_bits_per_pixel = 24;
-		break;
-	case 24:		// RGB888
-		rm67162->colmod_val = 0x77;
-		fb_bits_per_pixel = 24;
-		break;
-	default:
-		ESP_GOTO_ON_FALSE(false, ESP_ERR_NOT_SUPPORTED, err, TAG,
-				  "unsupported pixel width");
-		break;
-	}
-
-	rm67162->io = io;
-	rm67162->fb_bits_per_pixel = fb_bits_per_pixel;
-	rm67162->reset_gpio_num = panel_dev_config->reset_gpio_num;
-	rm67162->reset_level = panel_dev_config->flags.reset_active_high;
-	rm67162->base.del = panel_rm67162_del;
-	rm67162->base.reset = panel_rm67162_reset;
-	rm67162->base.init = panel_rm67162_init;
-	rm67162->base.draw_bitmap = panel_rm67162_draw_bitmap;
-	rm67162->base.invert_color = panel_rm67162_invert_color;
-	rm67162->base.set_gap = panel_rm67162_set_gap;
-	rm67162->base.mirror = panel_rm67162_mirror;
-	rm67162->base.swap_xy = panel_rm67162_swap_xy;
-	rm67162->base.disp_on_off = panel_rm67162_disp_on_off;
-	rm67162->base.disp_sleep = panel_rm67162_sleep;
-	*ret_panel = &(rm67162->base);
-	ESP_LOGD(TAG, "new rm67162 panel @%p", rm67162);
-
-	return ESP_OK;
-
- err:
-	if (rm67162) {
-		if (panel_dev_config->reset_gpio_num >= 0) {
-			gpio_reset_pin(panel_dev_config->reset_gpio_num);
-		}
-		free(rm67162);
-	}
-	return ret;
-}
 
 static esp_err_t panel_rm67162_del(esp_lcd_panel_t *panel)
 {
@@ -207,6 +98,10 @@ static esp_err_t panel_rm67162_reset(esp_lcd_panel_t *panel)
 	if (rm67162->reset_gpio_num >= 0) {
 		int delays[2] = {300, 200};
 		int lvl = rm67162->reset_level;
+
+		ESP_RETURN_ON_ERROR(gpio_set_direction(rm67162->reset_gpio_num,
+					GPIO_MODE_OUTPUT),
+				TAG, "configure GPIO for RST line failed");
 		for (int i = 0; i < 2; i++) {
 			ESP_LOGD(TAG, "Set pin %d to %d",
 				rm67162->reset_gpio_num, lvl);
@@ -216,7 +111,8 @@ static esp_err_t panel_rm67162_reset(esp_lcd_panel_t *panel)
 			vTaskDelay(pdMS_TO_TICKS(delays[i]));
 			lvl = !lvl;
 		}
-	} else {		// perform software reset
+	} else {
+		ESP_LOGD(TAG, "Performing software reset");
 		ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
 			(esp_lcd_panel_io_handle_t)rm67162->io,
 			LCD_CMD_SWRESET, NULL, 0),
@@ -232,6 +128,7 @@ static esp_err_t panel_rm67162_init(esp_lcd_panel_t *panel)
 {
 	rm67162_panel_t *rm67162 = __containerof(panel, rm67162_panel_t, base);
 	esp_lcd_panel_io_handle_t io = rm67162->io;
+
 	// LCD goes into sleep mode and display will be turned off
 	// after power on reset, exit sleep mode first
 	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(io, LCD_CMD_SLPOUT, NULL, 0),
@@ -367,4 +264,96 @@ static esp_err_t panel_rm67162_sleep(esp_lcd_panel_t *panel, bool sleep)
 	vTaskDelay(pdMS_TO_TICKS(100));
 
 	return ESP_OK;
+}
+
+static const esp_lcd_panel_t rm67162_base = {
+	.reset = panel_rm67162_reset,
+	.init = panel_rm67162_init,
+	.del = panel_rm67162_del,
+	.draw_bitmap = panel_rm67162_draw_bitmap,
+	.invert_color = panel_rm67162_invert_color,
+	.set_gap = panel_rm67162_set_gap,
+	.mirror = panel_rm67162_mirror,
+	.swap_xy = panel_rm67162_swap_xy,
+	.disp_on_off = panel_rm67162_disp_on_off,
+	.disp_sleep = panel_rm67162_sleep,
+};
+
+esp_err_t
+esp_lcd_new_panel_rm67162(const esp_lcd_panel_io_handle_t io,
+			  const esp_lcd_panel_dev_config_t *panel_dev_config,
+			  esp_lcd_panel_handle_t *ret_panel)
+{
+#if CONFIG_LCD_ENABLE_DEBUG_LOG
+	esp_log_level_set(TAG, ESP_LOG_DEBUG);
+#endif
+	esp_err_t ret = ESP_OK;
+	rm67162_panel_t *rm67162 = NULL;
+	ESP_GOTO_ON_FALSE(io && panel_dev_config && ret_panel,
+		ESP_ERR_INVALID_ARG, err, TAG, "invalid argument");
+	rm67162 = calloc(1, sizeof(rm67162_panel_t));
+	ESP_GOTO_ON_FALSE(rm67162,
+		ESP_ERR_NO_MEM, err, TAG, "no mem for rm67162 panel");
+
+	switch (panel_dev_config->rgb_ele_order) {
+	/*
+	 * Spec sheet says that LCD_CMD_MV_BIT is reversed for rm67162,
+	 * but in reality it is not. I.e. in portrait orientation scanning
+	 * goes left to right, top to bottom.
+	 */
+	case LCD_RGB_ELEMENT_ORDER_RGB:
+		rm67162->madctl_val = 0;
+		break;
+	case LCD_RGB_ELEMENT_ORDER_BGR:
+		rm67162->madctl_val = LCD_CMD_BGR_BIT;
+		break;
+	default:
+		ESP_GOTO_ON_FALSE(false,
+			ESP_ERR_NOT_SUPPORTED, err, TAG,
+			"unsupported RGB element order");
+		break;
+	}
+
+	uint8_t fb_bits_per_pixel = 0;
+	switch (panel_dev_config->bits_per_pixel) {
+	case 16:		// RGB565
+		rm67162->colmod_val = 0x55;
+		fb_bits_per_pixel = 16;
+		break;
+	case 18:		// RGB666
+		rm67162->colmod_val = 0x66;
+		// each color component (R/G/B) should occupy
+		// the 6 high bits of a byte, which means 3 full bytes
+		// are required for a pixel
+		fb_bits_per_pixel = 24;
+		break;
+	case 24:		// RGB888
+		rm67162->colmod_val = 0x77;
+		fb_bits_per_pixel = 24;
+		break;
+	default:
+		ESP_GOTO_ON_FALSE(false, ESP_ERR_NOT_SUPPORTED, err, TAG,
+				  "unsupported pixel width");
+		break;
+	}
+
+	rm67162->fb_bits_per_pixel = fb_bits_per_pixel;
+	rm67162->reset_gpio_num = panel_dev_config->reset_gpio_num;
+	rm67162->reset_level = panel_dev_config->flags.reset_active_high;
+	rm67162->io = io;
+	rm67162->base = rm67162_base;
+
+	*ret_panel = &(rm67162->base);
+	ESP_LOGD(TAG, "new rm67162 panel @%p", rm67162);
+
+	return ESP_OK;
+
+ err:
+	if (rm67162) {
+		if (panel_dev_config->reset_gpio_num >= 0) {
+			gpio_reset_pin(panel_dev_config->reset_gpio_num);
+		}
+		free(rm67162);
+	}
+	return ret;
 }
