@@ -28,7 +28,7 @@
 #include "sdkconfig.h"
 #include "lvgl.h"
 
-#define TAG "lvgl_esplcd"
+#define TAG "lvgl_demo"
 
 #if defined(CONFIG_HWE_DISPLAY_SPI1_HOST)
 # define SPIx_HOST SPI1_HOST
@@ -150,8 +150,6 @@ void app_main(void)
 	ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
 	ESP_LOGI(TAG, "Init panel");
 	ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
-	ESP_LOGI(TAG, "Turn on the screen");
-	ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
 	// ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, true));
 	// Rotate 90 degrees clockwise:
 	ESP_ERROR_CHECK(esp_lcd_panel_swap_xy(panel_handle, true));
@@ -200,6 +198,8 @@ void app_main(void)
 
 	ESP_LOGI(TAG, "Display LVGL Scroll Text");
 	example_lvgl_demo_ui(disp);
+	ESP_LOGI(TAG, "Turn on the screen");
+	ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
 	while (stop_request < 1) {
 		vTaskDelay(pdMS_TO_TICKS(10));
 		lv_task_handler();
@@ -212,15 +212,14 @@ void app_main(void)
 	}
 	lv_display_delete(disp);
 	ESP_LOGI(TAG, "Shutting down");
+	ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, false));
+	ESP_LOGI(TAG, "Putting display to sleep");
 	ESP_ERROR_CHECK(esp_lcd_panel_disp_sleep(panel_handle, true));
-	// vTaskDelay(pdMS_TO_TICKS(50));
-	// ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, false));
 	vTaskDelay(pdMS_TO_TICKS(50));
 	ESP_LOGI(TAG, "Panel delete");
 	ESP_ERROR_CHECK(esp_lcd_panel_del(panel_handle));
 	panel_handle = NULL;
 	if (CONFIG_HWE_DISPLAY_PWR >= 0) {
-		vTaskDelay(pdMS_TO_TICKS(5000));
 		ESP_LOGI(TAG, "Turn off display power");
 		ESP_ERROR_CHECK(gpio_set_level(CONFIG_HWE_DISPLAY_PWR,
 					!CONFIG_HWE_DISPLAY_PWR_ON_LEVEL));
