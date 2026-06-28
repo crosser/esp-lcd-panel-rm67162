@@ -1,0 +1,21 @@
+---
+name: Upload component to https://components.espressif.com
+on:
+  push:
+    tags:
+      - "*"
+
+jobs:
+  upload_components:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: espressif/upload-components-ci-action@v2
+        with:
+          components: |
+            esp-lcd-panel-rm67162: .
+          version: ${{ github.ref_name }}
+          namespace: "crosser"
+          dry_run: true
