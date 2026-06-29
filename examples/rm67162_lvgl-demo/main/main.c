@@ -210,11 +210,17 @@ void app_main(void)
 		*/
 		if (!lvl) stop_request++;
 	}
+	ESP_LOGI(TAG, "Deleting LVGL display");
 	lv_display_delete(disp);
-	ESP_LOGI(TAG, "Shutting down");
+	disp = NULL;
+	ESP_LOGI(TAG, "Turing off panel");
 	ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, false));
 	ESP_LOGI(TAG, "Putting display to sleep");
 	ESP_ERROR_CHECK(esp_lcd_panel_disp_sleep(panel_handle, true));
+	vTaskDelay(pdMS_TO_TICKS(50));
+	// Without reset, panel that is was turned off consumes a lot of power
+	ESP_LOGI(TAG, "Panel reset");
+	ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
 	vTaskDelay(pdMS_TO_TICKS(50));
 	ESP_LOGI(TAG, "Panel delete");
 	ESP_ERROR_CHECK(esp_lcd_panel_del(panel_handle));
