@@ -47,7 +47,7 @@ typedef struct {
 	esp_lcd_panel_t base;
 	esp_lcd_panel_io_handle_t io;
 	int reset_gpio_num;
-	bool reset_level;
+	bool reset_active_level;
 	int x_gap;
 	int y_gap;
 	uint8_t fb_bits_per_pixel;
@@ -60,6 +60,8 @@ static esp_err_t panel_rm67162_del(esp_lcd_panel_t *panel)
 	rm67162_panel_t *rm67162 = __containerof(panel, rm67162_panel_t, base);
 
 	if (rm67162->reset_gpio_num >= 0) {
+		ESP_LOGD(TAG, "reset \"reset\" gpio pin %d",
+				rm67162->reset_gpio_num);
 		gpio_reset_pin(rm67162->reset_gpio_num);
 	}
 	ESP_LOGD(TAG, "del rm67162 panel @%p", rm67162);
@@ -96,18 +98,19 @@ static esp_err_t panel_rm67162_reset(esp_lcd_panel_t *panel)
 
 	// perform hardware reset
 	if (rm67162->reset_gpio_num >= 0) {
-		int delays[2] = {300, 200};
-		int lvl = rm67162->reset_level;
+		int delays[] = {200, 300, 200};
+#define STEPS (sizeof(delays) / sizeof(delays[0]))
+		int lvl = rm67162->reset_active_level;
 
 		ESP_RETURN_ON_ERROR(gpio_set_direction(rm67162->reset_gpio_num,
 					GPIO_MODE_OUTPUT),
 				TAG, "configure GPIO for RST line failed");
-		for (int i = 0; i < 2; i++) {
-			ESP_LOGD(TAG, "Set pin %d to %d",
-				rm67162->reset_gpio_num, lvl);
+		for (int i = 0; i < STEPS; i++) {
+			ESP_LOGD(TAG, "Set RST pin %d to %s",
+				rm67162->reset_gpio_num, lvl?"HIGH":"LOW");
 			ESP_RETURN_ON_ERROR(gpio_set_level(
 					rm67162->reset_gpio_num, lvl),
-				TAG, "gpio_set_level active error");
+				TAG, "gpio_set_level for RST error");
 			vTaskDelay(pdMS_TO_TICKS(delays[i]));
 			lvl = !lvl;
 		}
@@ -337,7 +340,8 @@ esp_lcd_new_panel_rm67162(const esp_lcd_panel_io_handle_t io,
 
 	rm67162->fb_bits_per_pixel = fb_bits_per_pixel;
 	rm67162->reset_gpio_num = panel_dev_config->reset_gpio_num;
-	rm67162->reset_level = panel_dev_config->flags.reset_active_high;
+	rm67162->reset_active_level =
+			panel_dev_config->flags.reset_active_high;
 	rm67162->io = io;
 	rm67162->base = rm67162_base;
 
