@@ -63,9 +63,14 @@ menu "Hardware Environment (PINS, screen, etc.)"
 		int "RST (Reset device) pin number for display controller"
 		default 17
 
-	config HWE_DISPLAY_RST_ACTIVE_LEVEL
-		int "Which GPIO level is active 'resetting' (0 or 1)"
-		default 0
+	choice
+		prompt "RST level when device is active"
+		default HWE_DISPLAY_RST_ACTIVE_LEVEL_HIGH
+		config HWE_DISPLAY_RST_ACTIVE_LEVEL_HIGH
+			bool "Device is active when RST pin is HIGH"
+		config HWE_DISPLAY_RST_ACTIVE_LEVEL_LOW
+			bool "Device is active when RST pin is LOW"
+	endchoice
 
 	config HWE_DISPLAY_WIDTH
 		int "Display width (non-rotated)"
@@ -83,16 +88,8 @@ menu "Hardware Environment (PINS, screen, etc.)"
 		int "Which GPIO level is 'display on' (0 or 1)"
 		default 1
 
-	config HWE_BATTERY_ADC
-		int "Battery voltage ADC pin number"
-		default 4
-
 	config HWE_BUTTON_1
 		int "Button 1 GPIO pin number"
 		default 0
-
-	config HWE_BUTTON_2
-		int "Button 2 GPIO pin number"
-		default 21
 
 endmenu

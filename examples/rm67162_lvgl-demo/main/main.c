@@ -46,6 +46,14 @@
 # error "SPI MODE0 or MODE3 must be selected"
 #endif
 
+#if defined(CONFIG_HWE_DISPLAY_RST_ACTIVE_LEVEL_LOW)
+# define RST_ACTIVE_LEVEL 0
+#elif defined(CONFIG_HWE_DISPLAY_RST_ACTIVE_LEVEL_HIGH)
+# define RST_ACTIVE_LEVEL 1
+#else
+# error "RST_ACTIVE_LEVEL must be selected"
+#endif
+
 #define SEND_BUF_SIZE ((CONFIG_HWE_DISPLAY_WIDTH * CONFIG_HWE_DISPLAY_HEIGHT \
 	* LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565_SWAPPED)) / 10)
 
@@ -141,6 +149,7 @@ void app_main(void)
 		io_handle,
 		& (esp_lcd_panel_dev_config_t) {
 			.reset_gpio_num = CONFIG_HWE_DISPLAY_RST,
+			.flags.reset_active_high = RST_ACTIVE_LEVEL,
 			.rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
 			.bits_per_pixel = 16,
 		},
