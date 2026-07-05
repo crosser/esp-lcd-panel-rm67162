@@ -219,21 +219,32 @@ void app_main(void)
 		*/
 		if (!lvl) stop_request++;
 	}
+	ESP_LOGI(TAG, "Turn off the screen");
+	ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, false));
+	vTaskDelay(pdMS_TO_TICKS(50));
 	ESP_LOGI(TAG, "Deleting LVGL display");
 	lv_display_delete(disp);
 	disp = NULL;
-	ESP_LOGI(TAG, "Turing off panel");
-	ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, false));
-	ESP_LOGI(TAG, "Putting display to sleep");
-	ESP_ERROR_CHECK(esp_lcd_panel_disp_sleep(panel_handle, true));
-	vTaskDelay(pdMS_TO_TICKS(50));
-	// Without reset, panel that is was turned off consumes a lot of power
-	ESP_LOGI(TAG, "Panel reset");
-	ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
-	vTaskDelay(pdMS_TO_TICKS(50));
+	// This ought to work, judging from the name? To put the display
+	// chip in deep sleep mode? But for some reason, after this command,
+	// Waveshare version of the module starts to consume much more
+	// current than in active mode! LilyGo seems to behave normally,
+	// though possibly only because it has PWR line that can be turned
+	// off.
+	// ESP_LOGI(TAG, "Putting display to sleep");
+	// ESP_ERROR_CHECK(esp_lcd_panel_disp_sleep(panel_handle, true));
+	// vTaskDelay(pdMS_TO_TICKS(50));
+	// Anyway, if we rudely reset the controller, it is supposed to
+	// enter deep sleep mode (it needs to be waken explicitly in the
+	// panel init function in the driver. So, do reset and hope that
+	// it will stop chugging energy after that.
+	// ESP_LOGI(TAG, "Panel reset");
+	// ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
+	// vTaskDelay(pdMS_TO_TICKS(50));
 	ESP_LOGI(TAG, "Panel delete");
 	ESP_ERROR_CHECK(esp_lcd_panel_del(panel_handle));
 	panel_handle = NULL;
+	vTaskDelay(pdMS_TO_TICKS(50));
 	if (CONFIG_HWE_DISPLAY_PWR >= 0) {
 		ESP_LOGI(TAG, "Turn off display power");
 		ESP_ERROR_CHECK(gpio_set_level(CONFIG_HWE_DISPLAY_PWR,
@@ -242,5 +253,6 @@ void app_main(void)
 		gpio_reset_pin(CONFIG_HWE_DISPLAY_PWR);
 	}
 	vTaskDelay(pdMS_TO_TICKS(50));
+	ESP_LOGI(TAG, "Enter deep sleep");
 	esp_deep_sleep_start();
 }
