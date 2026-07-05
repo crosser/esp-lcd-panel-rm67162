@@ -18,6 +18,22 @@ LilyGO provides a driver for this controller, which is
 Waveshare provides example code that uses driver for sh8601 controller, that
 is apparently close enough to rm67162?...
 
+Lilygo board has a "Display Power" GPIO pin that needs to be set to high
+to enable display, and to low to turn it off. Waveshare board does not
+have such pin; specify `-1` value in the board configuration strcture.
+
+## Caveat(s)
+
+Example application tries to shut everything down when the "BOOT" button
+is pressed. It works, but there is a problem here:
+
+Something in the waveshare board wakes up a second after entering deep sleep
+and starts to consume power. Drain is several time higher than of an
+_operating_ device! It looks like excessive consumption is influenced by
+the operations that turn off the display, notably by `LCD_CMD_DISPOFF`
+sent over SPI. If anyone knows how to put the board to sleep properly,
+plese get in touch!  Lilygo board does not show such behaviour.
+
 ## References
 
 * T-Display-S3-AMOLED [https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED](https://github.com/Xinyuan-LilyGO/T-Display-S3-AMOLED)
