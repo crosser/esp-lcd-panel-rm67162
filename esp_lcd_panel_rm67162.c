@@ -31,6 +31,7 @@
 #include "driver/gpio.h"
 #include "esp_log.h"
 #include "esp_check.h"
+#include "esp_lcd_panel_rm67162.h"
 
 #define RM67162_CMD_DSTBON	0x4F	// Deep standby (RESX 0 > 3ms to wake)
 #define RM67162_CMD_WRCTRLD	0x53	// Write display control . . B . D . . .
@@ -356,7 +357,9 @@ esp_lcd_new_panel_rm67162(const esp_lcd_panel_io_handle_t io,
 	rm67162->io = io;
 	rm67162->base = rm67162_base;
 
-	if (true) {  // DC-less connection
+	rm67162_vendor_config_t *vendor_cfg = panel_dev_config->vendor_config;
+	if (!vendor_cfg || vendor_cfg->flags.dc_less) {
+		// DC-less connection with 32bit SPI commands
 		rm67162->io_tx_param = nodc_io_tx_param;
 		rm67162->io_tx_color = nodc_io_tx_color;
 	} else {

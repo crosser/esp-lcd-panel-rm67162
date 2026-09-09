@@ -125,8 +125,13 @@ void app_main(void)
 		(esp_lcd_spi_bus_handle_t)SPIx_HOST,
 	       	& (esp_lcd_panel_io_spi_config_t) {
 			.cs_gpio_num = CONFIG_HWE_DISPLAY_SPI_CS,
+			.dc_gpio_num = CONFIG_HWE_DISPLAY_SPI_DC,
 			.pclk_hz = CONFIG_HWE_DISPLAY_SPI_FREQUENCY,
+#if (CONFIG_HWE_DISPLAY_SPI_DC < 0)
 			.lcd_cmd_bits = 32,
+#else
+			.lcd_cmd_bits = 8,
+#endif
 			.lcd_param_bits = 8,
 #if defined(CONFIG_HWE_DISPLAY_SPI_SPI)
 			.spi_mode = 0,
@@ -152,6 +157,13 @@ void app_main(void)
 			.flags.reset_active_high = RST_ACTIVE_LEVEL,
 			.rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
 			.bits_per_pixel = 16,
+			.vendor_config = & (rm67162_vendor_config_t) {
+#if (CONFIG_HWE_DISPLAY_SPI_DC < 0)
+				.flags.dc_less = true,
+#else
+				.flags.dc_less = false,
+#endif
+			},
 		},
 		&panel_handle
 	));

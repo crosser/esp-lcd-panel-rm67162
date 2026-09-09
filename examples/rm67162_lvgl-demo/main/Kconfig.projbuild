@@ -59,6 +59,10 @@ menu "Hardware Environment (PINS, screen, etc.)"
 		int "CS (Chip Select) pin number for display controller"
 		default 6
 
+	config HWE_DISPLAY_SPI_DC
+		int "DC (Data / Command) pin number for display controller"
+		default -1
+
 	config HWE_DISPLAY_RST
 		int "RST (Reset device) pin number for display controller"
 		default 17

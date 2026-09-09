@@ -13,6 +13,12 @@
 extern "C" {
 #endif
 
+typedef struct {
+	struct {
+		unsigned int dc_less: 1; /*<! Set to 1 if use 32bit SPI cmds */
+	} flags;
+} rm67162_vendor_config_t;
+
 /**
  * @brief Create LCD panel for model RM67162
  *
