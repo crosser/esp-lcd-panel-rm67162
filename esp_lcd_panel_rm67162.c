@@ -43,9 +43,43 @@
 
 static const char *TAG = "lcd_panel.rm67162";
 
+/*
+ * Without DC pin, this chip uses two bytes per byte of address,
+ * and address itself is 16 bit wide. So here we need to construct a
+ * 32 bit wide contraption containing high and low bytes of the address
+ * interspersed with control bytes, and tell esp-idf's SPI driver that
+ * this is our 32 bit long command. Luckily for us, subsequent data is
+ * a simple sequence of bytes.
+ * In the panel configuration, set .lcd_cmd_bits = 32, .lcd_param_bits = 8.
+ *
+ * Control byte, hi addr byte, control byte, lo addr byte, control byte, data
+ *
+ * 1 |R D H 0 0 0 0 0|A A A A A A A A|R D H 0 0 0 0 0|A A A A A A A A|
+ * 0 |W C L 0 0 0 0 0|F E D C B A 9 8|W C L 0 0 0 0 0|7 6 5 4 3 2 1 0|
+ *
+ * Read or Write, data or command, hi or lo byte of 16bit address
+ */
+static esp_err_t nodc_io_tx_param(esp_lcd_panel_io_handle_t io, int lcd_cmd,
+		const void *param, size_t param_size)
+{
+	return esp_lcd_panel_io_tx_param(io, 0x02000000 | (lcd_cmd<<8),
+			param, param_size);
+}
+
+static esp_err_t nodc_io_tx_color(esp_lcd_panel_io_handle_t io, int lcd_cmd,
+		const void *color_data, size_t len)
+{
+	return esp_lcd_panel_io_tx_color(io, 0x32000000 | (lcd_cmd<<8),
+			color_data, len);
+}
+
 typedef struct {
 	esp_lcd_panel_t base;
 	esp_lcd_panel_io_handle_t io;
+	esp_err_t (*io_tx_param)(esp_lcd_panel_io_handle_t io, int lcd_cmd,
+                const void *param, size_t param_size);
+	esp_err_t (*io_tx_color)(esp_lcd_panel_io_handle_t io, int lcd_cmd,
+                const void *color_data, size_t len);
 	int reset_gpio_num;
 	bool reset_active_level;
 	int x_gap;
@@ -67,29 +101,6 @@ static esp_err_t panel_rm67162_del(esp_lcd_panel_t *panel)
 	ESP_LOGD(TAG, "del rm67162 panel @%p", rm67162);
 	free(rm67162);
 	return ESP_OK;
-}
-
-/*
- * Without DC pin, this chip uses two bytes per byte of address,
- * and address itself is 16 bit wide. So here we need to construct a
- * 32 bit wide contraption containing high and low bytes of the address
- * interspersed with control bytes, and tell esp-idf's SPI driver that
- * this is our 32 bit long command. Luckily for us, subsequent data is
- * a simple sequence of bytes.
- * In the panel configuration, set .lcd_cmd_bits = 32, .lcd_param_bits = 8.
- *
- * Control byte, hi addr byte, control byte, lo addr byte, control byte, data
- *
- * 1 |R D H 0 0 0 0 0|A A A A A A A A|R D H 0 0 0 0 0|A A A A A A A A|
- * 0 |W C L 0 0 0 0 0|F E D C B A 9 8|W C L 0 0 0 0 0|7 6 5 4 3 2 1 0|
- *
- * Read or Write, data or command, hi or lo byte of 16bit address
- */
-static esp_err_t rm67162_cmd_trans(esp_lcd_panel_io_handle_t io, int lcd_cmd,
-		const void *param, size_t param_size)
-{
-	return esp_lcd_panel_io_tx_param(io, 0x02000000 | (lcd_cmd<<8),
-			param, param_size);
 }
 
 static esp_err_t panel_rm67162_reset(esp_lcd_panel_t *panel)
@@ -116,7 +127,7 @@ static esp_err_t panel_rm67162_reset(esp_lcd_panel_t *panel)
 		}
 	} else {
 		ESP_LOGD(TAG, "Performing software reset");
-		ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+		ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 			(esp_lcd_panel_io_handle_t)rm67162->io,
 			LCD_CMD_SWRESET, NULL, 0),
 				TAG, "io tx param LCD_CMD_SWRESET failed");
@@ -134,20 +145,20 @@ static esp_err_t panel_rm67162_init(esp_lcd_panel_t *panel)
 
 	// LCD goes into sleep mode and display will be turned off
 	// after power on reset, exit sleep mode first
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(io, LCD_CMD_SLPOUT, NULL, 0),
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(io, LCD_CMD_SLPOUT, NULL, 0),
 			TAG, "io tx param LCD_CMD_SLPOUT failed");
 	vTaskDelay(pdMS_TO_TICKS(120));
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		io, LCD_CMD_MADCTL, (uint8_t[]) {rm67162->madctl_val,}, 1),
 			TAG, "io tx param LCD_CMD_MADCTL failed");
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		io, LCD_CMD_COLMOD, (uint8_t[]) {rm67162->colmod_val,}, 1),
 			TAG, "io tx param LCD_CMD_COLMOD failed");
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		io, LCD_CMD_WRDISBV, (uint8_t[]) {0,}, 1),
 			TAG, "io tx param LCD_CMD_WRDISBV 0 failed");
 	vTaskDelay(pdMS_TO_TICKS(120));
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		io, LCD_CMD_WRDISBV, (uint8_t[]) {0xD0,}, 1),
 			TAG, "io tx param LCD_CMD_WRDISBV 0xD0 failed");
 	return ESP_OK;
@@ -166,12 +177,12 @@ static esp_err_t panel_rm67162_draw_bitmap(esp_lcd_panel_t *panel, int x_start,
 	y_end += rm67162->y_gap;
 
 	// define an area of frame memory where MCU can access
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		io, LCD_CMD_CASET, (uint8_t[]) {
 			(x_start >> 8) & 0xFF, x_start & 0xFF,
 			((x_end - 1) >> 8) & 0xFF, (x_end - 1) & 0xFF,
 		}, 4), TAG, "io tx param LCD_CMD_CASET failed");
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		io, LCD_CMD_RASET, (uint8_t[]) {
 			(y_start >> 8) & 0xFF, y_start & 0xFF,
 			((y_end - 1) >> 8) & 0xFF, (y_end - 1) & 0xFF,
@@ -179,9 +190,9 @@ static esp_err_t panel_rm67162_draw_bitmap(esp_lcd_panel_t *panel, int x_start,
 	// transfer frame buffer
 	size_t len = (x_end - x_start) * (y_end - y_start)
 			* rm67162->fb_bits_per_pixel / 8;
-	ESP_RETURN_ON_ERROR(esp_lcd_panel_io_tx_color(
-		io, 0x32000000 | (LCD_CMD_RAMWR<<8), color_data, len),
-			TAG, "io tx color LCD_CMD_RAMWR failed");
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_color(
+		io, LCD_CMD_RAMWR, color_data, len),
+		TAG, "io tx color LCD_CMD_RAMWR failed");
 	return ESP_OK;
 }
 
@@ -189,7 +200,7 @@ static esp_err_t panel_rm67162_invert_color(esp_lcd_panel_t *panel,
 					    bool invert_color_data)
 {
 	rm67162_panel_t *rm67162 = __containerof(panel, rm67162_panel_t, base);
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		(esp_lcd_panel_io_handle_t)rm67162->io,
 		invert_color_data ? LCD_CMD_INVON : LCD_CMD_INVOFF,
 		NULL, 0),
@@ -211,7 +222,7 @@ static esp_err_t panel_rm67162_mirror(esp_lcd_panel_t *panel, bool mirror_x,
 	} else {
 		rm67162->madctl_val &= ~LCD_CMD_MY_BIT;
 	}
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		(esp_lcd_panel_io_handle_t)rm67162->io,
 		LCD_CMD_MADCTL,
 		(uint8_t[]) {rm67162->madctl_val,}, 1),
@@ -227,7 +238,7 @@ static esp_err_t panel_rm67162_swap_xy(esp_lcd_panel_t *panel, bool swap_axes)
 	} else {
 		rm67162->madctl_val &= ~LCD_CMD_MV_BIT;
 	}
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		(esp_lcd_panel_io_handle_t)rm67162->io,
 		LCD_CMD_MADCTL,
 		(uint8_t[]) {rm67162->madctl_val}, 1),
@@ -247,7 +258,7 @@ static esp_err_t panel_rm67162_set_gap(esp_lcd_panel_t *panel, int x_gap,
 static esp_err_t panel_rm67162_disp_on_off(esp_lcd_panel_t *panel, bool on_off)
 {
 	rm67162_panel_t *rm67162 = __containerof(panel, rm67162_panel_t, base);
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		(esp_lcd_panel_io_handle_t)rm67162->io,
 		on_off ? LCD_CMD_DISPON : LCD_CMD_DISPOFF, NULL, 0),
 			TAG, "io tx param LCD_CMD_DISPx failed");
@@ -257,7 +268,7 @@ static esp_err_t panel_rm67162_disp_on_off(esp_lcd_panel_t *panel, bool on_off)
 static esp_err_t panel_rm67162_sleep(esp_lcd_panel_t *panel, bool sleep)
 {
 	rm67162_panel_t *rm67162 = __containerof(panel, rm67162_panel_t, base);
-	ESP_RETURN_ON_ERROR(rm67162_cmd_trans(
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		(esp_lcd_panel_io_handle_t)rm67162->io,
 		sleep ? LCD_CMD_SLPIN : LCD_CMD_SLPOUT, NULL, 0),
 			TAG, "io tx param LCD_CMD_SLP%s failed",
@@ -344,6 +355,14 @@ esp_lcd_new_panel_rm67162(const esp_lcd_panel_io_handle_t io,
 			panel_dev_config->flags.reset_active_high;
 	rm67162->io = io;
 	rm67162->base = rm67162_base;
+
+	if (true) {  // DC-less connection
+		rm67162->io_tx_param = nodc_io_tx_param;
+		rm67162->io_tx_color = nodc_io_tx_color;
+	} else {
+		rm67162->io_tx_param = esp_lcd_panel_io_tx_param;
+		rm67162->io_tx_color = esp_lcd_panel_io_tx_color;
+	}
 
 	*ret_panel = &(rm67162->base);
 	ESP_LOGD(TAG, "new rm67162 panel @%p", rm67162);
