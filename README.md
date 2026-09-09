@@ -27,12 +27,11 @@ have such pin; specify `-1` value in the board configuration strcture.
 Example application tries to shut everything down when the "BOOT" button
 is pressed. It works, but there is a problem here:
 
-Something in the waveshare board wakes up a second after entering deep sleep
-and starts to consume power. Drain is several time higher than of an
-_operating_ device! It looks like excessive consumption is influenced by
-the operations that turn off the display, notably by `LCD_CMD_DISPOFF`
-sent over SPI. If anyone knows how to put the board to sleep properly,
-plese get in touch!  Lilygo board does not show such behaviour.
+Waveshare board consumes quite significant power after entering deep sleep.
+It seems that excessive consumption is influenced by the operations that
+turn off the display, notably by `LCD_CMD_DISPOFF` sent over SPI.
+If anyone knows how to put the board to sleep properly, plese get in touch!
+Lilygo board does not show such behaviour.
 
 ## References
 
@@ -41,4 +40,4 @@ plese get in touch!  Lilygo board does not show such behaviour.
 * ESP-IDF `esp_lcd` component [https://github.com/espressif/esp-idf/tree/master/components/esp\_lcd](https://github.com/espressif/esp-idf/tree/master/components/esp_lcd)
 * LVGL [https://docs.lvgl.io/](https://docs.lvgl.io/)
 * Waveshare example [https://github.com/waveshareteam/ESP32-S3-AMOLED-1.91/blob/main/02\_Example/ESP-IDF/03\_LVGL\_V8\_Test/LVGL\_Test\_90/main/example\_qspi\_with\_ram.c](https://github.com/waveshareteam/ESP32-S3-AMOLED-1.91/blob/main/02_Example/ESP-IDF/03_LVGL_V8_Test/LVGL_Test_90/main/example_qspi_with_ram.c)
-* sh8601 driver [https://github.com/espressif/esp-iot-solution/blob/master/components/display/lcd/esp\_lcd\_sh8601/esp\_lcd\_sh8601.c](https://github.com/espressif/esp-iot-solution/blob/master/components/display/lcd/esp_lcd_sh8601/esp_lcd_sh8601.c)
+* sh8601 driver [https://github.com/espressif/esp-iot-solution/tree/master/components/display/lcd/esp\_lcd\_sh8601](https://github.com/espressif/esp-iot-solution/tree/master/components/display/lcd/esp_lcd_sh8601)
