@@ -1,12 +1,10 @@
-    # This file was generated using idf.py save-defconfig. It can be edited manually.
-    # Espressif IoT Development Framework (ESP-IDF) 6.0.0 Project Minimal Configuration
-    #
-    # default:
+# This file was generated using idf.py save-defconfig or menuconfig [D] key. It can be edited manually.
+# Espressif IoT Development Framework (ESP-IDF) 6.1.0 Project Minimal Configuration
+#
+# default:
 CONFIG_IDF_TARGET="esp32s3"
 CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
 CONFIG_ESPTOOLPY_FLASHSIZE_16MB=y
-CONFIG_BT_ENABLED=y
-CONFIG_ESP_COEX_SW_COEXIST_ENABLE=n
 CONFIG_ETH_USE_SPI_ETHERNET=n
 CONFIG_ESP_HTTP_CLIENT_ENABLE_HTTPS=n
 CONFIG_LCD_ENABLE_DEBUG_LOG=y
