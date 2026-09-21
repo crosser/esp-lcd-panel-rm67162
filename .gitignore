@@ -3,4 +3,5 @@ dist/
 dependencies.lock
 managed_components/
 sdkconfig
+sdkconfig.defaults
 sdkconfig.old

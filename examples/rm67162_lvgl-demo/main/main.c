@@ -107,15 +107,24 @@ void app_main(void)
 	ESP_LOGI(TAG, "Initialize SPI bus");
 	ESP_ERROR_CHECK(spi_bus_initialize(SPIx_HOST,
 		& (spi_bus_config_t) {
+#if defined(CONFIG_HWE_DISPLAY_SPI_QSPI)
 			.data0_io_num = CONFIG_HWE_DISPLAY_SPI_D0,
 			.data1_io_num = CONFIG_HWE_DISPLAY_SPI_D1,
-			.sclk_io_num = CONFIG_HWE_DISPLAY_SPI_SCK,
 			.data2_io_num = CONFIG_HWE_DISPLAY_SPI_D2,
 			.data3_io_num = CONFIG_HWE_DISPLAY_SPI_D3,
+#else
+			.mosi_io_num = CONFIG_HWE_DISPLAY_SPI_D0,
+			.miso_io_num = -1,
+			.quadhd_io_num = -1,
+			.quadwp_io_num = -1,
+#endif
+			.sclk_io_num = CONFIG_HWE_DISPLAY_SPI_SCK,
 			.max_transfer_sz = SEND_BUF_SIZE + 8,
 			.flags = SPICOMMON_BUSFLAG_MASTER
 				| SPICOMMON_BUSFLAG_GPIO_PINS
+#if defined(CONFIG_HWE_DISPLAY_SPI_QSPI)
 				| SPICOMMON_BUSFLAG_QUAD,
+#endif
 		},
 		SPI_DMA_CH_AUTO
 	));
@@ -133,13 +142,12 @@ void app_main(void)
 			.lcd_cmd_bits = 8,
 #endif
 			.lcd_param_bits = 8,
+			.spi_mode = SPI_MODEx,
 #if defined(CONFIG_HWE_DISPLAY_SPI_SPI)
-			.spi_mode = 0,
+			/* nothing special */
 #elif defined(CONFIG_HWE_DISPLAY_SPI_QSPI)
-			.spi_mode = 0,
 			.flags.quad_mode = 1,
 #elif defined(CONFIG_HWE_DISPLAY_SPI_OSPI)
-			.spi_mode = 3,
 			.flags.octal_mode = 1,
 #else
 # error "SPI single, quad and octal modes are supported"
