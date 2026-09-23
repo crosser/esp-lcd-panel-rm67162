@@ -62,6 +62,12 @@
 # error "RST_ACTIVE_LEVEL must be selected"
 #endif
 
+#if CONFIG_HWE_DISPLAY_SPI_CUSTOM_INIT
+# include CONFIG_HWE_DISPLAY_SPI_INIT_CMDS
+#else
+static const rm67162_init_cmd_t *rm67162_init_cmds = NULL;
+#endif
+
 #define SEND_BUF_SIZE ((CONFIG_HWE_DISPLAY_WIDTH * CONFIG_HWE_DISPLAY_HEIGHT \
 	* LV_COLOR_FORMAT_GET_SIZE(LV_COLOR_FORMAT_RGB565_SWAPPED)) / 10)
 
@@ -168,6 +174,7 @@ void app_main(void)
 			.rgb_ele_order = LCD_RGB_ELEMENT_ORDER_RGB,
 			.bits_per_pixel = 16,
 			.vendor_config = & (rm67162_vendor_config_t) {
+				.init_cmds = rm67162_init_cmds,
 #if SPI_IS_QUAD
 				.flags.dc_less = true,
 #else

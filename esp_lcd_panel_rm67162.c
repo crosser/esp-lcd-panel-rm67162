@@ -33,23 +33,6 @@
 #include "esp_check.h"
 #include "esp_lcd_panel_rm67162.h"
 
-#define RM67162_CMD_OVSS_CTL	0x05	// OVSS control set elvss
-#define RM67162_CMD_0X07	0x07	// ???
-#define RM67162_CMD_DSTBON	0x4F	// Deep standby (RESX 0 > 3ms to wake)
-#define RM67162_CMD_WRCTRLD	0x53	// Write display control . . B . D . . .
-#define RM67162_CMD_RDCTRLD0	0x54	// Read disp contr (B-right, D-imming)
-#define RM67162_CMD_RDCTRLD1	0x55	// RAD_ACL Control
-#define RM67162_CMD_IMGEHCCTR0	0x58	// Set_color_enhance (three bits)
-#define RM67162_CMD_IMGEHCCTR1	0x59	// Read_color_enhance
-#define RM67162_CMD_CESLRCTR0	0x5A	// Set_color_enhance1
-#define RM67162_CMD_CESLRCTR1	0x5B	// Read_color_enhance1
-#define RM67162_CMD_0X6A	0x6A	// ???
-#define RM67162_CMD_OVSS_VL	0x73	// Set OVSS voltage level
-#define RM67162_CMD_SETDSI	0xC2	// Set DSI mode
-#define RM67162_CMD_SETDSPI	0xC4	// Set DSPI mode
-#define RM67162_CMD_WRCMDP	0xFE	// Write CMD mode page
-#define RM67162_CMD_RDCMDP	0xFE	// Read CMD page status
-
 static const char *TAG = "lcd_panel.rm67162";
 
 /*
@@ -96,6 +79,7 @@ typedef struct {
 	uint8_t fb_bits_per_pixel;
 	uint8_t madctl_val;	// save current value of LCD_CMD_MADCTL register
 	uint8_t colmod_val;	// save current value of LCD_CMD_COLMOD register
+	const rm67162_init_cmd_t *init_cmds;
 } rm67162_panel_t;
 
 static esp_err_t panel_rm67162_del(esp_lcd_panel_t *panel)
@@ -152,6 +136,17 @@ static esp_err_t panel_rm67162_init(esp_lcd_panel_t *panel)
 	rm67162_panel_t *rm67162 = __containerof(panel, rm67162_panel_t, base);
 	esp_lcd_panel_io_handle_t io = rm67162->io;
 
+	for (const rm67162_init_cmd_t *cmdp = rm67162->init_cmds;
+		cmdp && cmdp->data != (uint8_t *)-1;
+		cmdp++) {
+		ESP_LOGD(TAG, "Vendor init: cmd 0x%02x", cmdp->cmd);
+		ESP_RETURN_ON_ERROR(rm67162->io_tx_param(io, cmdp->cmd,
+				cmdp->data, cmdp->data_bytes),
+			TAG, "io tx param 0x%02x on init failed", cmdp->data);
+		if (cmdp->delay_ms)
+			vTaskDelay(pdMS_TO_TICKS(cmdp->delay_ms));
+	}
+
 	// LCD goes into sleep mode and display will be turned off
 	// after power on reset, exit sleep mode first
 	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(io, LCD_CMD_SLPOUT, NULL, 0),
@@ -163,10 +158,6 @@ static esp_err_t panel_rm67162_init(esp_lcd_panel_t *panel)
 	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		io, LCD_CMD_COLMOD, (uint8_t[]) {rm67162->colmod_val,}, 1),
 			TAG, "io tx param LCD_CMD_COLMOD failed");
-	/* needed in non-quad spi? */
-	//ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
-	//	io, RM67162_CMD_SETDSPI, (uint8_t[]) {0x80,}, 1),
-	//		TAG, "io tx param RM67162_CMD_SETDSPI failed");
 	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		io, LCD_CMD_WRDISBV, (uint8_t[]) {0,}, 1),
 			TAG, "io tx param LCD_CMD_WRDISBV 0 failed");
@@ -378,6 +369,7 @@ esp_lcd_new_panel_rm67162(const esp_lcd_panel_io_handle_t io,
 		rm67162->io_tx_param = esp_lcd_panel_io_tx_param;
 		rm67162->io_tx_color = esp_lcd_panel_io_tx_color;
 	}
+	rm67162->init_cmds = vendor_cfg->init_cmds;
 
 	*ret_panel = &(rm67162->base);
 	ESP_LOGD(TAG, "new rm67162 panel @%p", rm67162);
