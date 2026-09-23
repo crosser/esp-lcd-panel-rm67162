@@ -12,41 +12,6 @@ menu "Hardware Environment (PINS, screen, etc.)"
 	endchoice
 
 	choice
-		prompt "SPI bus width"
-		default HWE_DISPLAY_SPI_QSPI
-		config HWE_DISPLAY_SPI_SPI
-			bool "Regular SPI"
-		config HWE_DISPLAY_SPI_QSPI
-			bool "Quad SPI"
-		config HWE_DISPLAY_SPI_OSPI
-			bool "Octal SPI"
-	endchoice
-
-	config HWE_DISPLAY_SPI_SCK
-		int "SCK (Clock) pin number of SPI bus"
-		default 47
-
-	config HWE_DISPLAY_SPI_D0
-		int "D0 (a.k.a. MOSI) pin number of SPI bus"
-		default 18
-
-	config HWE_DISPLAY_SPI_D1
-		int "D1 (a.k.a. DC) pin number of SPI bus"
-		default 7
-
-	config HWE_DISPLAY_SPI_D2
-		int "D2 pin number of SPI bus"
-		default 48 
-
-	config HWE_DISPLAY_SPI_D3
-		int "D3 pin number of SPI bus"
-		default 5
-
-	config HWE_DISPLAY_SPI_FREQUENCY
-		int "SPI Frequency for the Display Controller"
-		default 75000000
-
-	choice
 		prompt "SPI Mode0 or Mode3"
 		default HWE_DISPLAY_SPI_MODE0
 		config HWE_DISPLAY_SPI_MODE0
@@ -55,13 +20,56 @@ menu "Hardware Environment (PINS, screen, etc.)"
 			bool "Mode 3"
 	endchoice
 
+	choice
+		prompt "SPI bus width"
+		default HWE_DISPLAY_SPI_QSPI
+		config HWE_DISPLAY_SPI_SPI
+			bool "Regular SPI"
+		config HWE_DISPLAY_SPI_QSPI
+			bool "Quad SPI"
+	endchoice
+
+	menu "Regular SPI pin configuration"
+		depends on HWE_DISPLAY_SPI_SPI
+		config HWE_DISPLAY_SPI_D0_MOSI
+			int "MOSI pin number of SPI bus"
+			default 18
+
+		config HWE_DISPLAY_SPI_D1_DC
+			int "DC pin number of SPI bus"
+			default 7
+	endmenu
+
+	menu "Quad SPI pin configuration"
+		depends on HWE_DISPLAY_SPI_QSPI
+		config HWE_DISPLAY_SPI_D0_MOSI
+			int "D0 pin number of SPI bus"
+			default 18
+
+		config HWE_DISPLAY_SPI_D1_DC
+			int "D1 pin number of SPI bus"
+			default 7
+
+		config HWE_DISPLAY_SPI_D2
+			int "D2 pin number of SPI bus"
+			default 48 
+
+		config HWE_DISPLAY_SPI_D3
+			int "D3 pin number of SPI bus"
+			default 5
+	endmenu
+
+	config HWE_DISPLAY_SPI_SCK
+		int "SCK (Clock) pin number of SPI bus"
+		default 47
+
+	config HWE_DISPLAY_SPI_FREQUENCY
+		int "SPI Frequency for the Display Controller"
+		default 75000000
+
 	config HWE_DISPLAY_SPI_CS
 		int "CS (Chip Select) pin number for display controller"
 		default 6
-
-	config HWE_DISPLAY_SPI_DC
-		int "DC (Data / Command) pin number for display controller"
-		default -1
 
 	config HWE_DISPLAY_RST
 		int "RST (Reset device) pin number for display controller"
@@ -71,9 +79,9 @@ menu "Hardware Environment (PINS, screen, etc.)"
 		prompt "RST level when device is active"
 		default HWE_DISPLAY_RST_ACTIVE_LEVEL_HIGH
 		config HWE_DISPLAY_RST_ACTIVE_LEVEL_HIGH
-			bool "Device is active when RST pin is HIGH"
+			bool "Active when RST pin is HIGH"
 		config HWE_DISPLAY_RST_ACTIVE_LEVEL_LOW
-			bool "Device is active when RST pin is LOW"
+			bool "Active when RST pin is LOW"
 	endchoice
 
 	config HWE_DISPLAY_WIDTH
