@@ -1,0 +1,44 @@
+{
+	"version": 3,
+	"configurePresets": [
+		{
+			"name": "t-display-s3-amoled",
+			"binaryDir": "build/t-display-s3-amoled",
+			"displayName": "LilyGo t-display-s3-amoled",
+			"description":
+				"Use config presets for LilyGo t-display-s3-amoled",
+			"cacheVariables": {
+				"SDKCONFIG_DEFAULTS":
+					"sdkconfig.t-display-s3-amoled",
+				"SDKCONFIG":
+					"./build/t-display-s3-amoled/sdkconfig"
+			}
+		},
+		{
+			"name": "t-display-s3-amoled-plus",
+			"binaryDir": "build/t-display-s3-amoled-plus",
+			"displayName": "LilyGo t-display-s3-amoled",
+			"description":
+				"Use config presets for LilyGo t-display-s3-amoled-plus",
+			"cacheVariables": {
+				"SDKCONFIG_DEFAULTS":
+					"sdkconfig.t-display-s3-amoled-plus",
+				"SDKCONFIG":
+					"./build/t-display-s3-amoled-plus/sdkconfig"
+			}
+		},
+		{
+			"name": "esp32-s3-amoled-1.91",
+			"binaryDir": "build/esp32-s3-amoled-1.91",
+			"displayName": "Waveshare esp32-s3-amoled-1.91",
+			"description":
+				"Use config presets for Waveshare esp32-s3-amoled-1.91",
+			"cacheVariables": {
+				"SDKCONFIG_DEFAULTS":
+					"sdkconfig.waveshare-esp32-s3-amoled-1.91",
+				"SDKCONFIG":
+					"./build/esp32-s3-amoled-1.91/sdkconfig"
+			}
+		}
+	]
+}
