@@ -84,6 +84,14 @@ menu "Hardware Environment (PINS, screen, etc.)"
 			bool "Active when RST pin is LOW"
 	endchoice
 
+	config HWE_DISPLAY_SPI_CUSTOM_INIT
+		bool "Use header with custom SPI init commands"
+		default false
+
+	config HWE_DISPLAY_SPI_INIT_CMDS
+		string "Header file with init spi commands"
+		depends on HWE_DISPLAY_SPI_CUSTOM_INIT
+
 	config HWE_DISPLAY_WIDTH
 		int "Display width (non-rotated)"
 		default 240
