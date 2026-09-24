@@ -259,6 +259,21 @@ static esp_err_t panel_rm67162_set_gap(esp_lcd_panel_t *panel, int x_gap,
 	return ESP_OK;
 }
 
+static esp_err_t panel_rm67162_set_brightness(esp_lcd_panel_t *panel,
+							int brightness)
+{
+	rm67162_panel_t *rm67162 = __containerof(panel, rm67162_panel_t, base);
+	ESP_RETURN_ON_FALSE(brightness >= 0 && brightness <= 0xFF,
+		ESP_ERR_INVALID_ARG, TAG, "brightness out of range");
+	uint8_t brightness_value = (uint8_t)brightness;
+	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
+		(esp_lcd_panel_io_handle_t)rm67162->io, LCD_CMD_WRDISBV,
+		&brightness_value, 1),
+			TAG, "io tx param LCD_CMD_WRDISBV failed");
+	return ESP_OK;
+
+}
+
 static esp_err_t panel_rm67162_disp_on_off(esp_lcd_panel_t *panel, bool on_off)
 {
 	rm67162_panel_t *rm67162 = __containerof(panel, rm67162_panel_t, base);
@@ -289,6 +304,7 @@ static const esp_lcd_panel_t rm67162_base = {
 	.draw_bitmap = panel_rm67162_draw_bitmap,
 	.invert_color = panel_rm67162_invert_color,
 	.set_gap = panel_rm67162_set_gap,
+	.set_brightness = panel_rm67162_set_brightness,
 	.mirror = panel_rm67162_mirror,
 	.swap_xy = panel_rm67162_swap_xy,
 	.disp_on_off = panel_rm67162_disp_on_off,

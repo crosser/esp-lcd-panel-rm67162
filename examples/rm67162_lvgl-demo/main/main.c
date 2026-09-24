@@ -236,6 +236,8 @@ void app_main(void)
 
 	ESP_LOGI(TAG, "Display LVGL Scroll Text");
 	example_lvgl_demo_ui(disp);
+	ESP_LOGI(TAG, "Set brightness 0xD0");
+	ESP_ERROR_CHECK(esp_lcd_panel_set_brightness(panel_handle, 0xD0));
 	ESP_LOGI(TAG, "Turn on the screen");
 	ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_handle, true));
 	while (stop_request < 1) {
@@ -264,7 +266,7 @@ void app_main(void)
 	// ESP_ERROR_CHECK(esp_lcd_panel_disp_sleep(panel_handle, true));
 	// vTaskDelay(pdMS_TO_TICKS(50));
 	// Anyway, if we rudely reset the controller, it is supposed to
-	// enter deep sleep mode (it needs to be waken explicitly in the
+	// enter deep sleep mode (it needs to be woken explicitly in the
 	// panel init function in the driver. So, do reset and hope that
 	// it will stop chugging energy after that.
 	// ESP_LOGI(TAG, "Panel reset");
