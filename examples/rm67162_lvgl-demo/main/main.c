@@ -119,7 +119,8 @@ void app_main(void)
 		vTaskDelay(pdMS_TO_TICKS(500));
 	}
 
-	ESP_LOGI(TAG, "Initialize SPI bus");
+	ESP_LOGI(TAG, "Initialize SPI bus (host %d, %s width)",
+			SPIx_HOST, SPI_IS_QUAD ? "quad" : "regular");
 	ESP_ERROR_CHECK(spi_bus_initialize(SPIx_HOST,
 		& (spi_bus_config_t) {
 #if SPI_IS_QUAD
@@ -136,14 +137,14 @@ void app_main(void)
 			.sclk_io_num = CONFIG_HWE_DISPLAY_SPI_SCK,
 			.max_transfer_sz = SEND_BUF_SIZE + 8,
 			.flags = SPICOMMON_BUSFLAG_MASTER
-				| SPICOMMON_BUSFLAG_GPIO_PINS
 #if SPI_IS_QUAD
-				| SPICOMMON_BUSFLAG_QUAD,
+				| SPICOMMON_BUSFLAG_QUAD
 #endif
+				| SPICOMMON_BUSFLAG_GPIO_PINS,
 		},
 		SPI_DMA_CH_AUTO
 	));
-	ESP_LOGI(TAG, "Attach panel IO handle to SPI");
+	ESP_LOGI(TAG, "Attach panel IO handle to SPI (in mode %d)", SPI_MODEx);
 	esp_lcd_panel_io_handle_t io_handle = NULL;
 	ESP_ERROR_CHECK(esp_lcd_new_panel_io_spi(
 		(esp_lcd_spi_bus_handle_t)SPIx_HOST,

@@ -110,8 +110,9 @@ static esp_err_t panel_rm67162_reset(esp_lcd_panel_t *panel)
 					GPIO_MODE_OUTPUT),
 				TAG, "configure GPIO for RST line failed");
 		for (int i = 0; i < STEPS; i++) {
-			ESP_LOGD(TAG, "Set RST pin %d to %s",
-				rm67162->reset_gpio_num, lvl?"HIGH":"LOW");
+			ESP_LOGD(TAG, "Set RST pin %d to %s, delay %d ms",
+				rm67162->reset_gpio_num, lvl?"HIGH":"LOW",
+				delays[i]);
 			ESP_RETURN_ON_ERROR(gpio_set_level(
 					rm67162->reset_gpio_num, lvl),
 				TAG, "gpio_set_level for RST error");
@@ -136,6 +137,7 @@ static esp_err_t panel_rm67162_init(esp_lcd_panel_t *panel)
 	rm67162_panel_t *rm67162 = __containerof(panel, rm67162_panel_t, base);
 	esp_lcd_panel_io_handle_t io = rm67162->io;
 
+	// for (int i = 0; i < 2; i++)
 	for (const rm67162_init_cmd_t *cmdp = rm67162->init_cmds;
 		cmdp && cmdp->data != (uint8_t *)-1;
 		cmdp++) {
@@ -345,11 +347,11 @@ esp_lcd_new_panel_rm67162(const esp_lcd_panel_io_handle_t io,
 	uint8_t fb_bits_per_pixel = 0;
 	switch (panel_dev_config->bits_per_pixel) {
 	case 16:		// RGB565
-		rm67162->colmod_val = 0x55;
+		rm67162->colmod_val = 0x75;
 		fb_bits_per_pixel = 16;
 		break;
 	case 18:		// RGB666
-		rm67162->colmod_val = 0x66;
+		rm67162->colmod_val = 0x76;
 		// each color component (R/G/B) should occupy
 		// the 6 high bits of a byte, which means 3 full bytes
 		// are required for a pixel
@@ -374,10 +376,12 @@ esp_lcd_new_panel_rm67162(const esp_lcd_panel_io_handle_t io,
 
 	rm67162_vendor_config_t *vendor_cfg = panel_dev_config->vendor_config;
 	if (!vendor_cfg || vendor_cfg->flags.dc_less) {
+		ESP_LOGD(TAG, "Setting up for QSPI 32-bit commands");
 		// DC-less connection with 32bit SPI commands
 		rm67162->io_tx_param = nodc_io_tx_param;
 		rm67162->io_tx_color = nodc_io_tx_color;
 	} else {
+		ESP_LOGD(TAG, "Setting up for regular 8-bit commands");
 		rm67162->io_tx_param = esp_lcd_panel_io_tx_param;
 		rm67162->io_tx_color = esp_lcd_panel_io_tx_color;
 	}
