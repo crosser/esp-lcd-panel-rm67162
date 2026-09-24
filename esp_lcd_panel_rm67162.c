@@ -159,10 +159,6 @@ static esp_err_t panel_rm67162_init(esp_lcd_panel_t *panel)
 		io, LCD_CMD_COLMOD, (uint8_t[]) {rm67162->colmod_val,}, 1),
 			TAG, "io tx param LCD_CMD_COLMOD failed");
 	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
-		io, LCD_CMD_WRDISBV, (uint8_t[]) {0,}, 1),
-			TAG, "io tx param LCD_CMD_WRDISBV 0 failed");
-	vTaskDelay(pdMS_TO_TICKS(120));
-	ESP_RETURN_ON_ERROR(rm67162->io_tx_param(
 		io, LCD_CMD_WRDISBV, (uint8_t[]) {0xD0,}, 1),
 			TAG, "io tx param LCD_CMD_WRDISBV 0xD0 failed");
 	return ESP_OK;
