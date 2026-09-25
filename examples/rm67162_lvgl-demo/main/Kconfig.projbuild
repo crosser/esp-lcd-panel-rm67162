@@ -9,6 +9,8 @@ menu "Hardware Environment (PINS, screen, etc.)"
 			bool "SPI1_HOST"
 		config HWE_DISPLAY_SPI2_HOST
 			bool "SPI2_HOST"
+		config HWE_DISPLAY_SPI3_HOST
+			bool "SPI3_HOST"
 	endchoice
 
 	choice

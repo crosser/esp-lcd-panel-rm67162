@@ -34,8 +34,10 @@
 # define SPIx_HOST SPI1_HOST
 #elif defined(CONFIG_HWE_DISPLAY_SPI2_HOST)
 # define SPIx_HOST SPI2_HOST
+#elif defined(CONFIG_HWE_DISPLAY_SPI3_HOST)
+# define SPIx_HOST SPI3_HOST
 #else
-# error "SPI host 1 or 2 must be selected"
+# error "SPI host 1, 2 or 3 must be selected"
 #endif
 
 #if defined(CONFIG_HWE_DISPLAY_SPI_MODE0)
