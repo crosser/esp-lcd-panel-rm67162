@@ -15,7 +15,7 @@ jobs:
       - uses: espressif/upload-components-ci-action@v2
         with:
           registry_url: "https://components-staging.espressif.com/"
-          dry_run: true
+          # dry_run: true
           components: |
             esp-lcd-panel-rm67162: .
           version: ${{ github.ref_name }}
