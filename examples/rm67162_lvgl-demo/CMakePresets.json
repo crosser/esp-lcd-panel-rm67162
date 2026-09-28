@@ -35,7 +35,7 @@
 				"Use config presets for Waveshare esp32-s3-amoled-1.91",
 			"cacheVariables": {
 				"SDKCONFIG_DEFAULTS":
-					"sdkconfig.waveshare-esp32-s3-amoled-1.91",
+					"sdkconfig.esp32-s3-amoled-1.91",
 				"SDKCONFIG":
 					"./build/esp32-s3-amoled-1.91/sdkconfig"
 			}

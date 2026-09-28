@@ -2,10 +2,10 @@
 
 ## What is this and why?
 
-This driver only works when the controller is connected over 3-Wire SPI,
-and does not use DC pin ("16 bit transfer mode"), and tested only against:
+This driver is tested against:
 
 * LilyGO T-Display-S3-AMOLED dev module.
+* LilyGO T-Display-S3-AMOLED-Plus dev module.
 * Waveshare ESP32-S3-AMOLED-1.91.
 
 Why?
@@ -16,11 +16,39 @@ LilyGO provides a driver for this controller, which is
 * Uses polling SPI transactions (no dual buffer support possible)
 
 Waveshare provides example code that uses driver for sh8601 controller, that
-is apparently close enough to rm67162?...
+is apparently close enough to rm67162. Possibly one can get away without
+a specialised driver for rm67162, by using sh8601 driver from espessif's
+project _esp-iot-solution_.
 
-Lilygo board has a "Display Power" GPIO pin that needs to be set to high
-to enable display, and to low to turn it off. Waveshare board does not
-have such pin; specify `-1` value in the board configuration strcture.
+Both Lilygo boards have a "Display Power" GPIO pin that needs to be set to
+high to enable display, and to low to turn it off. Waveshare board does not
+have such pin.
+
+## Example
+
+Example code in the `examples` directory can be built for each of the
+three supported boards using isp-idf's "preset" feature:
+
+```
+idf.py --preset <board-template> menuconfig
+idf.py --preset <board-template> flash monitor
+```
+
+where `<board-template>` is one of
+
+* `t-display-s3-amoled`
+* `t-display-s3-amoled-plus`
+* `esp32-s3-amoled-1.91`
+
+### Example vendor init sequence
+
+The driver allows to specify "vendor init sequence" of SPI commands to perform
+initial setup of the display after reset / power on. Example shows how such
+sequence can be put in a header file, and the name of the header file given to
+menuconfig. Init sequence for t-display-s3-amoled-plus is included in the
+file `t-display-s3-amoled-plus.h` in the examples directory. Vendor offers
+initial sequence for other board models too, in their example code, that I
+found unnecessary and did not include.
 
 ## Caveat(s)
 
@@ -29,9 +57,9 @@ is pressed. It works, but there is a problem here:
 
 Waveshare board consumes quite significant power after entering deep sleep.
 It seems that excessive consumption is influenced by the operations that
-turn off the display, notably by `LCD_CMD_DISPOFF` sent over SPI.
+turn off the display, notably by `LCD_CMD_DISPOFF` SPI command.
 If anyone knows how to put the board to sleep properly, plese get in touch!
-Lilygo board does not show such behaviour.
+Lilygo boards do not show such behaviour.
 
 ## References
 
@@ -41,6 +69,13 @@ Lilygo board does not show such behaviour.
 * LVGL [https://docs.lvgl.io/](https://docs.lvgl.io/)
 * Waveshare example [https://github.com/waveshareteam/ESP32-S3-AMOLED-1.91/blob/main/02\_Example/ESP-IDF/03\_LVGL\_V8\_Test/LVGL\_Test\_90/main/example\_qspi\_with\_ram.c](https://github.com/waveshareteam/ESP32-S3-AMOLED-1.91/blob/main/02_Example/ESP-IDF/03_LVGL_V8_Test/LVGL_Test_90/main/example_qspi_with_ram.c)
 * sh8601 driver [https://github.com/espressif/esp-iot-solution/tree/master/components/display/lcd/esp\_lcd\_sh8601](https://github.com/espressif/esp-iot-solution/tree/master/components/display/lcd/esp_lcd_sh8601)
+
+## Attribution
+
+Eugene Crosser \<crosser (at) average.org\>
+
+[Primary repo](https://www.average.org/cgit/esp-lcd-panel-rm67162.git/),
+[Github mirror](https://github.com/crosser/esp-lcd-panel-rm67162)
 
 ## Appendix
 
@@ -95,7 +130,7 @@ static const sh8601_lcd_init_cmd_t lcd_init_cmds[] = {
 };
 ```
 
-Another one:
+From another example:
 
 ```
 static const sh8601_lcd_init_cmd_t lcd_init_cmds[] = {
