@@ -385,7 +385,8 @@ esp_lcd_new_panel_rm67162(const esp_lcd_panel_io_handle_t io,
 		rm67162->io_tx_param = esp_lcd_panel_io_tx_param;
 		rm67162->io_tx_color = esp_lcd_panel_io_tx_color;
 	}
-	rm67162->init_cmds = vendor_cfg->init_cmds;
+	if (vendor_cfg)
+		rm67162->init_cmds = vendor_cfg->init_cmds;
 
 	*ret_panel = &(rm67162->base);
 	ESP_LOGD(TAG, "new rm67162 panel @%p", rm67162);
